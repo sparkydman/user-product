@@ -9,7 +9,7 @@ import { Request } from 'express';
 import { JwtHandler } from '../utils/jwt';
 import * as config from 'config';
 import { Reflector } from '@nestjs/core';
-import { UserService } from 'src/user/user.service';
+import { UserService } from '../user/user.service';
 
 export const NO_AUTH_KEY = 'no_auth';
 export const Public = () => SetMetadata(NO_AUTH_KEY, true);

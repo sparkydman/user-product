@@ -4,13 +4,21 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { CreateUserDto, LoginDto, LoginResponse } from './dto/user.dto';
+import {
+  CreateUserDto,
+  LoginDto,
+  LoginResponse,
+  UserEntity,
+  UserEntityWithProducts,
+} from './dto/user.dto';
 import { User } from './model/user.model';
 import * as bcrypt from 'bcrypt';
 import * as config from 'config';
-import { JwtHandler } from 'src/utils/jwt';
+import { JwtHandler } from '../utils/jwt';
 import { Session } from './model/session.model';
-import { SessionDto } from './dto/session.dto';
+import { SessionEntity } from './dto/session.dto';
+import { Product } from '../product/model/product.model';
+import { ProductEntity } from '../product/dto/product.dto';
 
 @Injectable()
 export class UserService {
@@ -19,9 +27,11 @@ export class UserService {
     private readonly userModel: typeof User,
     @InjectModel(Session)
     private readonly sessionModel: typeof Session,
+    @InjectModel(Product)
+    private readonly productModel: typeof Product,
   ) {}
-  async create(createUserDto: CreateUserDto) {
-    const isUserExist = await this.userModel.findOne({
+  async create(createUserDto: CreateUserDto): Promise<UserEntity> {
+    const isUserExist: UserEntity = await this.userModel.findOne({
       where: { email: createUserDto.email },
       raw: true,
     });
@@ -32,12 +42,10 @@ export class UserService {
     }
     const salt = await bcrypt.genSalt(config.get<number>('salt_rounds'));
     createUserDto.password = await bcrypt.hash(createUserDto.password, salt);
-    await this.userModel.create(createUserDto, {
-      returning: false,
+    const createdUser: UserEntity = await this.userModel.create(createUserDto, {
+      returning: true,
     });
-    return {
-      message: 'user created successfully',
-    };
+    return createdUser;
   }
   async login(loginDto: LoginDto): Promise<LoginResponse> {
     const user = await this.userModel.findOne({
@@ -60,7 +68,7 @@ export class UserService {
       },
     );
     const refreshToken = tokenHandler.genToken(
-      { user },
+      { userId: user.id },
       {
         expiresIn: config.get<string>('refresh_token_ttl'),
       },
@@ -78,11 +86,11 @@ export class UserService {
     };
   }
 
-  async findAll() {
+  async findAll(): Promise<UserEntity[]> {
     return this.userModel.findAll({ attributes: { exclude: ['password'] } });
   }
 
-  async findOneById(id: number) {
+  async findOneById(id: number): Promise<UserEntity> {
     const user = await this.userModel.findOne({
       where: { id },
       raw: true,
@@ -94,7 +102,7 @@ export class UserService {
     return user;
   }
 
-  async findOneByEmail(email: string) {
+  async findOneByEmail(email: string): Promise<UserEntity> {
     const user = await this.userModel.findOne({
       where: { email },
       raw: true,
@@ -106,7 +114,7 @@ export class UserService {
     return user;
   }
 
-  async update(id: number, updateUserDto: CreateUserDto) {
+  async update(id: number, updateUserDto: CreateUserDto): Promise<object> {
     const isUserExist = await this.findOneById(id);
     if (!isUserExist) {
       throw new NotFoundException(`User ${id} does not exist`);
@@ -120,7 +128,7 @@ export class UserService {
     };
   }
 
-  async remove(id: number) {
+  async remove(id: number): Promise<object> {
     const isUserExist = await this.findOneById(id);
     if (!isUserExist) {
       throw new NotFoundException(`User ${id} does not exist`);
@@ -131,14 +139,53 @@ export class UserService {
     };
   }
 
-  async getUserSession(id: number): Promise<SessionDto> {
+  async getUserSession(id: number): Promise<SessionEntity> {
     return this.sessionModel.findOne({ where: { userId: id }, raw: true });
   }
 
-  async logout(id: number) {
-    return this.sessionModel.update(
+  async logout(id: number): Promise<void> {
+    await this.sessionModel.update(
       { session: null, isActive: false },
       { where: { userId: id } },
     );
+  }
+
+  async refreshToken(token: string): Promise<object> {
+    const handler = new JwtHandler(config.get<string>('private_key'));
+    const result: any = handler.verifyToken(token);
+    if (!result.valid) {
+      throw new BadRequestException('Invalid refresh token');
+    }
+    const user = await this.findOneById(result.decode?.userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const accessToken = handler.genToken(
+      { user },
+      {
+        expiresIn: config.get<string>('access_token_ttl'),
+      },
+    );
+    return { accessToken };
+  }
+
+  async userWithProducts(
+    id: number,
+  ): Promise<UserEntityWithProducts<ProductEntity[]>> {
+    return this.userModel.findOne({
+      where: { id },
+      include: [Product],
+      attributes: { exclude: ['password'] },
+    });
+  }
+
+  async usersWithProducts(
+    ids: number[],
+  ): Promise<UserEntityWithProducts<ProductEntity[]>[]> {
+    return this.userModel.findAll({
+      where: { id: ids },
+      include: [Product],
+      attributes: { exclude: ['password'] },
+    });
   }
 }

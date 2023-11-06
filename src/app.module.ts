@@ -9,16 +9,17 @@ import { AuthRequired } from './decorators/auth.guard';
 import { PermissionRequired } from './decorators/permission.guard';
 import { ProductModule } from './product/product.module';
 import { GeneralResponse } from './decorators/response.interceptor';
-
+import * as config from 'config';
 @Module({
   imports: [
     SequelizeModule.forRoot({
       dialect: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'root',
-      database: 'shared',
+      host: config.get<string>('db_host'),
+      port: config.get<number>('db_port'),
+      username: config.get<string>('db_username'),
+      password: config.get<string>('db_password'),
+      database: config.get<string>('db_name'),
+      logging: false,
       synchronize: true,
       autoLoadModels: true,
     }),

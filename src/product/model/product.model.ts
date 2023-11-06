@@ -1,8 +1,9 @@
 import { Table, Column, Model, ForeignKey } from 'sequelize-typescript';
-import { User } from 'src/user/model/user.model';
+import { User } from '../../user/model/user.model';
+import { ProductEntity } from '../dto/product.dto';
 
-@Table
-export class Product extends Model {
+@Table({ updatedAt: false, createdAt: false })
+export class Product extends Model<ProductEntity> {
   @Column
   companyName: string;
   @Column

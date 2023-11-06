@@ -1,8 +1,9 @@
 import { Model, Table, Column, HasMany } from 'sequelize-typescript';
-import { Product } from 'src/product/model/product.model';
+import { Product } from '../../product/model/product.model';
+import { UserEntity } from '../dto/user.dto';
 
-@Table
-export class User extends Model {
+@Table({ updatedAt: false, createdAt: false })
+export class User extends Model<UserEntity> {
   @Column
   name: string;
 

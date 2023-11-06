@@ -1,5 +1,5 @@
 import * as jwt from 'jsonwebtoken';
-import { IJwtVerifyResponse } from 'src/interfaces/jwt.interface';
+import { IJwtVerifyResponse } from '../interfaces/jwt.interface';
 
 export class JwtHandler {
   constructor(private readonly privateKey: string) {}

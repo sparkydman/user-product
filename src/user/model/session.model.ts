@@ -6,9 +6,10 @@ import {
   DataType,
 } from 'sequelize-typescript';
 import { User } from './user.model';
+import { SessionEntity } from '../dto/session.dto';
 
-@Table
-export class Session extends Model {
+@Table({ updatedAt: false, createdAt: false })
+export class Session extends Model<SessionEntity> {
   @Column({ type: DataType.TEXT, allowNull: true })
   session: string;
   @Column({ defaultValue: new Date() })

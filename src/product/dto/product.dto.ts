@@ -10,7 +10,7 @@ export const createProductSchema = z
       required_error: 'number of products is required',
     }),
     percentage: z.number({ required_error: 'percentage is required' }),
-    userId: z.number({ required_error: 'userId is required' }),
+    userId: z.number().optional(),
   })
   .refine(
     (data) =>
@@ -22,3 +22,16 @@ export const createProductSchema = z
   );
 
 export type CreateProductDto = z.infer<typeof createProductSchema>;
+
+export class ProductEntity {
+  id?: number;
+  companyName: string;
+  numberOfProducts: number;
+  numberOfUsers: number;
+  percentage: number;
+  userId?: number;
+
+  constructor(partial: Partial<ProductEntity>) {
+    Object.assign(this, partial);
+  }
+}

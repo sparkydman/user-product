@@ -36,3 +36,4 @@ lerna-debug.log*
 
 #confidential
 config/default.ts
+config/test.ts
